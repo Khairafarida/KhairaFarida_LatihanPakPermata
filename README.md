@@ -1,0 +1,1 @@
+# KhairaFarida_LatihanPakPermata
