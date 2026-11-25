@@ -1,64 +1,60 @@
 "use server";
 
+import { redirect } from "next/navigation";
+import { tambahBuku } from "@/lib/buku";
+import { KATEGORI } from "@/lib/kategori";
+
 export type FormState = {
-  errors: {
-    judul?: string;
-    penulis?: string;
-    kategori?: string;
-    tahun?: string;
-    stok?: string;
-    deskripsi?: string;
-  };
-  values: {
-    judul?: string;
-    penulis?: string;
-    kategori?: string;
-    tahun?: string;
-    stok?: string;
-    deskripsi?: string;
-  };
+  errors: Partial<Record<"judul" | "penulis" | "kategori" | "tahun" | "stok", string>>;
+  values: Record<string, string>;
 };
 
-export async function tambahBukuAction(
-  prevState: FormState,
-  formData: FormData
-): Promise<FormState> {
-  const judul = formData.get("judul")?.toString().trim() ?? "";
-  const penulis = formData.get("penulis")?.toString().trim() ?? "";
-  const kategori = formData.get("kategori")?.toString().trim() ?? "";
-  const tahunStr = formData.get("tahun")?.toString().trim() ?? "";
-  const stokStr = formData.get("stok")?.toString().trim() ?? "";
-  const deskripsi = formData.get("deskripsi")?.toString().trim() ?? "";
+export async function tambahBukuAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const ambil = (k: string) => String(formData.get(k) ?? "").trim();
+
+  const values = {
+    judul: ambil("judul"),
+    penulis: ambil("penulis"),
+    kategori: ambil("kategori"),
+    tahun: ambil("tahun"),
+    stok: ambil("stok"),
+    deskripsi: ambil("deskripsi"),
+  };
 
   const errors: FormState["errors"] = {};
 
-  if (!judul) errors.judul = "Judul wajib diisi";
-  if (!penulis) errors.penulis = "Penulis wajib diisi";
-  if (!kategori) errors.kategori = "Kategori wajib dipilih";
+  if (!values.judul) errors.judul = "Judul wajib diisi";
+  if (!values.penulis) errors.penulis = "Penulis wajib diisi";
+  if (!values.kategori) errors.kategori = "Kategori wajib dipilih";
+  else if (!(KATEGORI as readonly string[]).includes(values.kategori))
+    errors.kategori = "Kategori tidak valid";
 
-  if (!stokStr) {
-    errors.stok = "Jumlah stok wajib diisi";
-  } else if (isNaN(Number(stokStr)) || Number(stokStr) < 0) {
-    errors.stok = "Jumlah stok harus berupa angka valid (minimal 0)";
+  let tahun: number | null = null;
+  if (values.tahun) {
+    const t = Number(values.tahun);
+    const maks = new Date().getFullYear() + 1;
+    if (!Number.isInteger(t) || t < 1000 || t > maks) errors.tahun = `Tahun harus antara 1000 dan ${maks}`;
+    else tahun = t;
   }
 
-  if (tahunStr && (isNaN(Number(tahunStr)) || Number(tahunStr) < 1000)) {
-    errors.tahun = "Tahun terbit tidak valid";
+  let stokTotal = 0;
+  if (!values.stok) errors.stok = "Jumlah stok wajib diisi";
+  else {
+    const s = Number(values.stok);
+    if (!Number.isInteger(s) || s < 0) errors.stok = "Jumlah stok harus bilangan bulat ≥ 0";
+    else stokTotal = s;
   }
 
-  const values: FormState["values"] = {
-    judul,
-    penulis,
-    kategori,
-    tahun: tahunStr,
-    stok: stokStr,
-    deskripsi,
-  };
+  if (Object.keys(errors).length > 0) return { errors, values };
 
-  if (Object.keys(errors).length > 0) {
-    return { errors, values };
-  }
+  const buku = await tambahBuku({
+    judul: values.judul,
+    penulis: values.penulis,
+    kategori: values.kategori,
+    tahun,
+    stokTotal,
+    deskripsi: values.deskripsi,
+  });
 
-  // TODO: Tambahkan penyimpanan ke database bila sudah tersedia
-  return { errors: {}, values: {} };
+  redirect(`/buku/${buku.id}`);
 }

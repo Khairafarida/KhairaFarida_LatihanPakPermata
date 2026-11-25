@@ -2,7 +2,7 @@ import Link from "next/link";
 import BadgeStok from "./BadgeStok";
 
 type Buku = {
-  id: string;
+  id: string | number;
   judul: string;
   penulis: string;
   kategori: string;

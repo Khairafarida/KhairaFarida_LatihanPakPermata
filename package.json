@@ -5,7 +5,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "predev": "prisma db push && prisma db seed",
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "prebuild": "prisma db push && prisma db seed",
     "build": "next build",
     "start": "next start"
